@@ -30,9 +30,11 @@ function handle_change() {
 
 function compare_state() {
 	set +o errexit
+	set +o errtrace
 	printf "%s" "$VERSIONS" | diff state.txt - > /dev/null
 	EXITCODE="$?"
 	set -o errexit
+	set -o errtrace
 
 	case "$EXITCODE" in
     	'0')
