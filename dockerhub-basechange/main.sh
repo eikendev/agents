@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
-set -o errexit
-set -o errtrace
+function set_shell_options() {
+	set -o errexit
+	set -o errtrace
+}
+
+set_shell_options
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
@@ -16,9 +20,26 @@ function error_exit() {
 			-F "message=$GOTIFY_MESSAGE" \
 			-F "priority=${GOTIFY_PRIORITY:-5}"
 	fi
+
+	exit 1
 }
 
-trap error_exit ERR
+function enable_error_handling() {
+	set_shell_options
+	trap error_exit ERR
+}
+
+function unset_shell_options() {
+	set +o errexit
+	set +o errtrace
+}
+
+function disable_error_handling() {
+	unset_shell_options
+	trap - ERR
+}
+
+enable_error_handling
 
 function handle_change() {
 	printf "%s\n" 'Writing repository state.'
@@ -29,12 +50,10 @@ function handle_change() {
 }
 
 function compare_state() {
-	set +o errexit
-	set +o errtrace
+	disable_error_handling
 	printf "%s" "$VERSIONS" | diff state.txt - > /dev/null
 	EXITCODE="$?"
-	set -o errexit
-	set -o errtrace
+	enable_error_handling
 
 	case "$EXITCODE" in
     	'0')
@@ -45,6 +64,7 @@ function compare_state() {
 			handle_change
         	;;
     	*)
+			printf "%s\n" 'Error while calculating state differences.'
     		false
         	;;
 	esac
@@ -70,6 +90,7 @@ VERSIONS="$(curl -q -s -S -L -H "Authorization: Bearer $TOKEN" "https://$API_DOM
 if [ -f state.txt ]; then
 	compare_state
 else
+	printf "%s\n" 'State is empty.'
 	handle_change
 fi
 
