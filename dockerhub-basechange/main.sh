@@ -2,7 +2,6 @@
 
 function set_shell_options() {
 	set -o errexit
-	set -o errtrace
 }
 
 set_shell_options
@@ -31,7 +30,6 @@ function enable_error_handling() {
 
 function unset_shell_options() {
 	set +o errexit
-	set +o errtrace
 }
 
 function disable_error_handling() {
@@ -65,7 +63,7 @@ function compare_state() {
         	;;
     	*)
 			printf "%s\n" 'Error while calculating state differences.'
-    		false
+    		return 1
         	;;
 	esac
 }
@@ -82,10 +80,12 @@ AUTH_SCOPE="repository:$DOCKER_HUB_ORG/$DOCKER_HUB_REPO:pull"
 API_DOMAIN='registry-1.docker.io'
 
 printf "%s\n" 'Requesting authentication bearer.'
-TOKEN="$(curl -q -s -S -L "https://$AUTH_DOMAIN/token?service=$AUTH_SERVICE&scope=$AUTH_SCOPE" | jq -r '.token')"
+TOKEN="$(curl -q -s -S -L "https://$AUTH_DOMAIN/token?service=$AUTH_SERVICE&scope=$AUTH_SCOPE")"
+TOKEN="$(echo "$TOKEN" | jq -r '.token')"
 
 printf "%s\n" 'Requesting repository manifest.'
-VERSIONS="$(curl -q -s -S -L -H "Authorization: Bearer $TOKEN" "https://$API_DOMAIN/v2/$DOCKER_HUB_ORG/$DOCKER_HUB_REPO/manifests/$DOCKER_HUB_TAG" | jq -c '.fsLayers')"
+VERSIONS="$(curl -q -s -S -L -H "Authorization: Bearer $TOKEN" "https://$API_DOMAIN/v2/$DOCKER_HUB_ORG/$DOCKER_HUB_REPO/manifests/$DOCKER_HUB_TAG")"
+VERSIONS="$(echo "$VERSIONS" | jq -c '.fsLayers')"
 
 if [ -f state.txt ]; then
 	compare_state
