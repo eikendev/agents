@@ -1,8 +1,8 @@
 SHELL_FILES = $(shell find . -type f -name '*.sh')
 
 .PHONY: all
-all: lint
+all: check
 
-.PHONY: lint
-lint:
+.PHONY: check
+check:
 	shellcheck ${SHELL_FILES}
